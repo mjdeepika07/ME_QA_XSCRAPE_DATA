@@ -1,5 +1,8 @@
 package demo.wrappers;
 
+public class WrappersNew {
+    package demo.wrappers;
+
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -26,7 +29,6 @@ import java.io.File;
 
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.StaleElementReferenceException;
-import org.testng.Assert;
 import org.testng.asserts.SoftAssert;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -38,12 +40,12 @@ public class Wrappers {
     static List<String> listOfDataWinPercentLessThan40;
     static SoftAssert softAssert = new SoftAssert();
     static Map<String, Object> map;
-    static List<Map<String, String>> listOfMapsTopFiveMovies = new ArrayList<>();
-    public static File testCase02File;
-    public static File testCase01File;
+    static boolean isWinner = false;
+    static List<List<String>> listOfListTopFiveMoviesForAllYears = new ArrayList<>();
+    static Map<String,String> topMoviesMap = new HashMap<>();
 
 
-    //Navigate to the desired homepage url
+
     public static boolean wrapper_navigateToUrl(ChromeDriver driver, WebDriverWait wait, String url) {
         try {
             if (!driver.getCurrentUrl().trim().equals(url))
@@ -59,7 +61,6 @@ public class Wrappers {
         }
     }
 
-    //Click on hyperlink
     public static boolean wrapper_clickATab(ChromeDriver driver, WebDriverWait wait, WebElement wePageTitle){
         try{
 
@@ -73,32 +74,29 @@ public class Wrappers {
 
     }
 
-    //Iterate through the table
     public static boolean wrapper_parseATableWinPercentLessthan40(ChromeDriver driver, WebDriverWait wait){
 
         try{
+
+            //Iterate through the table and 
+            //collect the Team Name, Year and Win % for the teams with Win % less than 40% (0.40)
             
             int pageNumber = 1;
             WebElement weNextPage;
-
-            //Get the movie details from the 4 pages. looping thru the pageNumber from 1 to 4
             while(pageNumber <= 4){
                 System.out.println("Page Number :"+pageNumber);
                 
                 weNextPage = driver.findElement(By.xpath("//li/a[@aria-label='Next']"));
-                
-                //scroll to the desired webelement
+     
                 JavascriptExecutor js = (JavascriptExecutor)driver;
                 js.executeScript("arguments[0].scrollIntoView(true);",weNextPage);
                 
-                //Click the next page link
                 weNextPage.click();
                 new WebDriverWait(driver, Duration.ofSeconds(10)).until(
                             webDriver -> ((JavascriptExecutor) webDriver).executeScript("return document.readyState").equals("complete")
                         );
                 
                 
-                //Get the List of webelements having the header names 
                 List<WebElement> listOfHeaderNames = wait.until(ExpectedConditions.visibilityOfAllElementsLocatedBy(By.xpath("//table[@class='table']/tbody/tr/th")));
                 int countOfColumns = listOfHeaderNames.size();
 
@@ -110,7 +108,6 @@ public class Wrappers {
             
                 Thread.sleep((new java.util.Random().nextInt(3)+2)*1000);
                 
-                //Get the movie details having the win % less than 0.40
                 Wrappers.wrapper_getDataWinPercentLessthan40(driver, wait, listOfHeaderNames , listOfRows, countOfColumns, countOfRows);
         
                 pageNumber++;
@@ -125,7 +122,6 @@ public class Wrappers {
 
     }
 
-    //Get the movie details having the win % less than 0.40
     public static boolean wrapper_getDataWinPercentLessthan40(ChromeDriver driver, WebDriverWait wait, List<WebElement> listOfHeaderNames , List<WebElement> listOfRows, int countOfColumns, int countOfRows){
         
         try{
@@ -178,7 +174,6 @@ public class Wrappers {
 
     }
 
-    //Wrapper method to store data into ArrayList
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public static boolean wrapper_storeDataInArrayList(ChromeDriver driver, WebDriverWait wait, WebElement weTeamName, WebElement weYear, WebElement weWinPercentage){
 
@@ -199,7 +194,6 @@ public class Wrappers {
 
     }
 
-    //Wrapper method to convert from list to hashmap
     public static boolean wrapper_convertListToMap(ChromeDriver driver, WebDriverWait wait){
 
         try{
@@ -214,7 +208,7 @@ public class Wrappers {
             
 
             System.out.println(map);
-            softAssert.assertTrue(Wrappers.wrapper_buildAndStoreJsonFile(driver, wait, testCase01File),"Printing of HashMap FAILED!!");
+            softAssert.assertTrue(Wrappers.wrapper_buildAndStoreJsonFile(driver, wait),"Printing of HashMap FAILED!!");
 
             return true;
 
@@ -228,27 +222,27 @@ public class Wrappers {
 
 
 
-    //Wrapper method to build and store the json file
-    public static boolean wrapper_buildAndStoreJsonFile(ChromeDriver driver, WebDriverWait wait, File testCase01File){
+
+    public static boolean wrapper_buildAndStoreJsonFile(ChromeDriver driver, WebDriverWait wait){
 
         try{
-            testCase01File = new File("/Users/garikimukkulakamalakar/dev/mjdeepika07-ME_QA_XSCRAPE_DATA/src/test/resources/hockey-team-data.json");
-            
+
             map.forEach((key,value) -> {
 
                 System.out.println(key + ":" + value);
 
             });
-
             ObjectMapper mapper = new ObjectMapper();
             String mapJsonAsString = mapper.writeValueAsString(map);
             String mapJsonAsPrettyString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
             System.out.println(mapJsonAsString);
             System.out.println(mapJsonAsPrettyString);
 
+            //String userDir = System.getProperty("user.dir");
             //Writing JSON on a file
-            mapper.writerWithDefaultPrettyPrinter().writeValue(testCase01File,map);
-            wrapper_isJsonFilePresentAndNotEmpty(driver, wait, testCase01File);
+            File f = new File("/Users/garikimukkulakamalakar/dev/mjdeepika07-ME_QA_XSCRAPE_DATA/src/test/resources/hockey-team-data.json");
+            
+            mapper.writerWithDefaultPrettyPrinter().writeValue(f,map);
             
             return true;
 
@@ -261,71 +255,166 @@ public class Wrappers {
 
     }
 
-    //wrapper method to store all the top 5 movie details for a given year in a hashmap and then move one by one to the ArrayList
-    public static boolean wrapper_clickOnTheYearToViewOscarWinningFilms(ChromeDriver driver, WebDriverWait wait, WebElement weEachYearLink){
+    public static List<List<String>> wrapper_clickOnTheYearToViewOscarWinningFilms(ChromeDriver driver, WebDriverWait wait, WebElement weEachYearLink){
 
         
-                try{
-        
-                    int count = 0;
-                    List<WebElement> listOfRowsInFilmsTable = driver.findElements(By.xpath("//tr[@class='film']"));
-                    List<String> mapKeyNames = new ArrayList<>();
-                    
-                    mapKeyNames.add("Epoch Time of Scrape");
-                    mapKeyNames.add("Year");
-                    mapKeyNames.add("Title");
-                    mapKeyNames.add("Nomination");
-                    mapKeyNames.add("Awards");
-                    mapKeyNames.add("isWinner");
+        try{
 
-                    
-                    for(int i = 0; i < 5; i++){
-                        
-                        Map<String,String> mapOfMovieDetails = new HashMap<>();
+            int count = 0;
+            List<WebElement> listOfRowsInFilmsTable = driver.findElements(By.xpath("//tr[@class='film']"));
+            List<List<String>> listOfListTopFiveMovies = new ArrayList<>();
 
-                        String epochTime = String.valueOf(System.currentTimeMillis()/1000);
-                        mapOfMovieDetails.put(mapKeyNames.get(0),epochTime);
-        
-                        mapOfMovieDetails.put(mapKeyNames.get(1),weEachYearLink.getText());
+            for(int i = 0; i < 5; i++){
+                List<String> listOfTopFiveMovies = new ArrayList<>();
+                Boolean isWinner = (count==0);
 
-                        WebElement weTitle =  listOfRowsInFilmsTable.get(i).findElement(By.xpath("./td[@class='film-title']"));
-                        mapOfMovieDetails.put(mapKeyNames.get(2),weTitle.getText());
-                       
-        
-                        WebElement weNominations =  listOfRowsInFilmsTable.get(i).findElement(By.xpath("./td[@class='film-nominations']"));
-                        mapOfMovieDetails.put(mapKeyNames.get(3),weNominations.getText());
-                       
-        
-                        WebElement weAwards =  listOfRowsInFilmsTable.get(i).findElement(By.xpath("./td[@class='film-awards']"));
-                        mapOfMovieDetails.put(mapKeyNames.get(4),weAwards.getText());
-                     
-        
-                        Boolean isWinner = (count==0);
-                        mapOfMovieDetails.put(mapKeyNames.get(5),String.valueOf(isWinner));
+                String epochTime = String.valueOf(System.currentTimeMillis()/1000);
+                //System.out.println("Epoch Time of Scrape : " + epochTime);
+                listOfTopFiveMovies.add(epochTime);
 
-                        listOfMapsTopFiveMovies.add(mapOfMovieDetails);
-                      
-                        count++;
-                    }
-                    System.out.println("List Of hashmap objects : " + listOfMapsTopFiveMovies);
-                  
-                    return true;
-                }
-                catch(Exception e){
-                    System.out.println(e.getMessage());
-                    return false;
-                    
-                }
+                //System.out.println("Year : " + weEachYearLink.getText());
+                listOfTopFiveMovies.add(weEachYearLink.getText());
+
+                WebElement weTitle =  listOfRowsInFilmsTable.get(i).findElement(By.xpath("./td[@class='film-title']"));
+                //System.out.println(weTitle.getText());
+                listOfTopFiveMovies.add(weTitle.getText());
+
+                WebElement weNominations =  listOfRowsInFilmsTable.get(i).findElement(By.xpath("./td[@class='film-nominations']"));
+                //System.out.println(weNominations.getText());
+                listOfTopFiveMovies.add(weNominations.getText());
+
+                WebElement weAwards =  listOfRowsInFilmsTable.get(i).findElement(By.xpath("./td[@class='film-awards']"));
+                //System.out.println(weAwards.getText());
+                listOfTopFiveMovies.add(weAwards.getText());
+
+                //System.out.println("IsWinner : " + isWinner);
+                listOfTopFiveMovies.add(String.valueOf(isWinner));
+
+                //System.out.println("List of Strings : " + listOfTopFiveMovies);
+
+                listOfListTopFiveMovies.add(listOfTopFiveMovies);
+
+                count++;
             }
 
-    //Store List of hashmaps to jsonFile
-    public static boolean wrapper_storeListToJsonFile(ChromeDriver driver, WebDriverWait wait){
+            System.out.println("List of List of Strings : " + listOfListTopFiveMovies);
+            
+            for(List<String> list : listOfListTopFiveMovies)
+                listOfListTopFiveMoviesForAllYears.add(list);
+
+            //System.out.println(listOfListTopFiveMoviesForFiveYears);
+            return listOfListTopFiveMoviesForAllYears;
+            //return true;
+        }
+        catch(Exception e){
+            System.out.println(e.getMessage());
+            return listOfListTopFiveMoviesForAllYears;
+            
+        }
+    }
+
+    public static Map<String,String> wrapper_convertHashmapToArrayList(ChromeDriver driver, WebDriverWait wait, List<List<String>> listOfListTopFiveMoviesForAllYears){
+        
+        List<String> mapKeyNames = new ArrayList<>();
+        mapKeyNames.add("Epoch Time of Scrape");
+        mapKeyNames.add("Year");
+        mapKeyNames.add("Title");
+        mapKeyNames.add("Nomination");
+        mapKeyNames.add("Awards");
+        mapKeyNames.add("isWinner");
+
+        for(List<String> list : listOfListTopFiveMoviesForAllYears){
+            System.out.println("listOfListTopFiveMoviesForAllYears Size : "+ listOfListTopFiveMoviesForAllYears.size());
+            for(int i = 0; i < list.size(); i++){
+                System.out.println("Size of single list : "+list.size());
+                
+                topMoviesMap.put(list.get(i),mapKeyNames.get(i));
+            
+            }
+            
+        }
+
+        topMoviesMap.forEach((key,value) -> {
+
+            System.out.println(key + " : " + value);
+
+        });
+
+        return topMoviesMap;
+    }
+
+
+    public static Map<String,String> wrapper_convertArraylistToHashmap(ChromeDriver driver, WebDriverWait wait, List<List<String>> listOfListTopFiveMoviesForAllYears){
+
+        List<String> mapKeyNames = new ArrayList<>();
+        mapKeyNames.add("Epoch Time of Scrape");
+        mapKeyNames.add("Year");
+        mapKeyNames.add("Title");
+        mapKeyNames.add("Nomination");
+        mapKeyNames.add("Awards");
+        mapKeyNames.add("isWinner");
+
+        for(List<String> list : listOfListTopFiveMoviesForAllYears){
+            System.out.println("listOfListTopFiveMoviesForAllYears Size : "+ listOfListTopFiveMoviesForAllYears.size());
+            for(int i = 0; i < list.size(); i++){
+                System.out.println("Size of single list : "+list.size());
+                
+                topMoviesMap.put(list.get(i),mapKeyNames.get(i));
+            
+            }
+            
+        }
+
+        topMoviesMap.forEach((key,value) -> {
+
+            System.out.println(key + " : " + value);
+
+        });
+
+        return topMoviesMap;
+    }
+
+
+    public static boolean wrapper_clickOnTheYearToViewOscarWinningFilmsOld(ChromeDriver driver, WebDriverWait wait, WebElement weEachYearLink){
 
         try{
 
-            testCase02File = new File("/Users/garikimukkulakamalakar/dev/mjdeepika07-ME_QA_XSCRAPE_DATA/src/output folder/oscar-winner-data.json");
-            ObjectMapper objectMapper = new ObjectMapper();
-            objectMapper.writerWithDefaultPrettyPrinter().writeValue(testCase02File,listOfMapsTopFiveMovies);
+            int bestPictureHeaderIndex=0;
+
+            wait.until(ExpectedConditions.refreshed(ExpectedConditions.presenceOfAllElementsLocatedBy(By.xpath("//table[@class='table']/thead/tr/th"))));
+            
+            List<WebElement> listOfHeaderNames = driver.findElements(By.xpath("//table[@class='table']/thead/tr/th"));
+            for(int i = 0; i < listOfHeaderNames.size() ; i++){
+                if(listOfHeaderNames.get(i).getText().trim().contains("Best Picture")){
+                    bestPictureHeaderIndex = i+1;
+                    System.out.println("The Index of the 'Best Picture' column header is : "+bestPictureHeaderIndex);
+                    break;
+                }
+            }
+        
+
+            //Get the list of webelements for all the movies and store them in a List 'weListOfMovieNames' 
+            List<WebElement> weListOfMovieNames = wait.until(ExpectedConditions.visibilityOfAllElementsLocatedBy(By.xpath("//table[@class='table']/tbody/tr[@class='film']/td[1]")));
+            
+            
+            //Create a list 'listOfTopFiveMovieNames' of strings to store top five movie names 
+            List<String> listOfTopFiveMovieNames = new ArrayList<>();
+
+            //Get a webelement from the List of webelements using get() method and then get the exact movie name using getText() method
+            //Iterate for 5 times, since we need top '5' movie names 
+            for(int i = 0; i < 5; i++){
+                
+                listOfTopFiveMovieNames.add(weListOfMovieNames.get(i).getText());
+            
+            }
+
+            //Iterate thru the listOfMovieNames to print the top 5 movie names
+            Iterator<String> it = listOfTopFiveMovieNames.iterator();
+            while(it.hasNext()){
+                System.out.println(it.next());
+
+            }
+
 
             return true;
         }
@@ -335,25 +424,29 @@ public class Wrappers {
             
         }
     }
-
-    //Check if the json file is created successfully or not under the specified filepath and that the file contains some data  
-    public static boolean wrapper_isJsonFilePresentAndNotEmpty(ChromeDriver driver, WebDriverWait wait, File file){
-
+    
+    public static boolean wrapper_isWinner(ChromeDriver driver, WebDriverWait wait, String movieName, int bestPictureHeaderIndex){
         try{
-
-            Assert.assertTrue(file.exists(),"File does not exists in the specified file path.");
-            Assert.assertFalse(file.length()==0, "The file is present and data is also present!");
+            
+            WebElement weIsWinner = driver.findElement(By.xpath("//tbody/tr/td[contains(text(),'"+movieName+"')]/following-sibling::td/i"));
+            if(weIsWinner.getAttribute("class").contains("glyphicon glyphicon-flag"))
+                {
+                    isWinner=true;
+                    System.out.println("The movie "+movieName+" is the 'Best Picture' movie");
+                }
             return true;
         }
-        catch(Exception e){
-            System.out.println("File does not exist or file is empty!! " + e.getMessage());
+        catch(NoSuchElementException e){
+            System.out.println("This movie "+movieName+"is not the best picture" + e.getMessage());
             return false;
             
-        
+        }
+
     }
+
+
     
 
-
-}
 }
 
+}
